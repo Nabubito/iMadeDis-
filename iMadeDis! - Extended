@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>iMadeDis! | Production Console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- 1. CORE VARIABLES --- */
+        :root {
+            --bg-void: #050505;
+            --bg-panel: #111111;
+            --btc-orange: #F7931A;
+            --btc-dim: rgba(247, 147, 26, 0.2);
+            --term-green: #00ff41;
+            --text-main: #E0E0E0;
+            --text-muted: #666;
+            --border: #333;
+            --radius: 12px;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-head: 'Space Grotesk', sans-serif;
+        }
+
+        /* --- 2. RESET & BASE --- */
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+
+        body {
+            background-color: var(--bg-void);
+            color: var(--text-main);
+            font-family: var(--font-mono);
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            /* Hash Background Pattern */
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.92), rgba(0,0,0,0.92)),
+                url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='50%25' y='50%25' font-size='10' fill='%23333' font-family='monospace' text-anchor='middle' dominant-baseline='middle'%3E1010%3C/text%3E%3C/svg%3E");
+        }
+
+        /* --- 3. LAYOUT (Responsive Grid) --- */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 900px) {
+            .container {
+                flex-direction: row;
+                align-items: flex-start;
+                padding: 40px;
+            }
+            .panel-side { width: 350px; flex-shrink: 0; }
+            .panel-main { flex-grow: 1; }
+        }
+
+        /* --- 4. PANELS --- */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            position: relative;
+        }
+        
+        /* Orange corner accents */
+        .panel::before { content: ''; position: absolute; top: 0; left: 0; width: 20px; height: 20px; border-top: 2px solid var(--btc-orange); border-left: 2px solid var(--btc-orange); border-radius: 6px 0 0 0; }
+        .panel::after { content: ''; position: absolute; bottom: 0; right: 0; width: 20px; height: 20px; border-bottom: 2px solid var(--btc-orange); border-right: 2px solid var(--btc-orange); border-radius: 0 0 6px 0; }
+
+        /* --- 5. COMPONENTS --- */
+        .brand {
+            font-family: var(--font-head);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        .btc-logo {
+            width: 36px; height: 36px;
+            background: var(--btc-orange);
+            color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 1.4rem;
+            box-shadow: 0 0 20px var(--btc-dim);
+        }
+
+        /* Stats Strip */
+        .stat-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 15px; font-size: 0.9rem;
+            border-bottom: 1px dashed #333; padding-bottom: 10px;
+        }
+        .stat-label { color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-size: 0.8rem; }
+        .stat-val { color: var(--btc-orange); font-weight: 700; font-family: var(--font-mono); }
+
+        /* Buttons */
+        .btn-wallet {
+            width: 100%;
+            background: #222;
+            color: white;
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 8px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 30px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: all 0.2s;
+        }
+        .btn-wallet:hover { border-color: var(--btc-orange); background: #2a2a2a; }
+        .btn-wallet.connected { border-color: var(--term-green); color: var(--term-green); background: rgba(0,255,65,0.05); }
+
+        .btn-inscribe {
+            width: 100%; padding: 20px; margin-top: 20px;
+            background: var(--btc-orange); color: black;
+            border: none; border-radius: 8px;
+            font-family: var(--font-head); font-weight: 700; font-size: 1.2rem;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 5px 0 #b36b12; /* 3D Click Effect */
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn-inscribe:active { transform: translateY(5px); box-shadow: none; }
+        .btn-inscribe:disabled { background: #333; color: #555; box-shadow: none; cursor: not-allowed; transform: none; }
+
+        /* Tabs */
+        .tab-bar {
+            display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+            margin-bottom: 25px;
+            background: #000; padding: 5px; border-radius: 8px;
+        }
+        .tab-btn {
+            background: transparent; border: none;
+            color: var(--text-muted); padding: 10px;
+            font-family: var(--font-mono); font-weight: 600;
+            cursor: pointer; border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: #222; color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        /* Inputs */
+        .input-area { display: none; }
+        .input-area.active { display: block; animation: fadeUp 0.3s ease; }
+        @keyframes fadeUp { from{opacity:0; transform:translateY(5px)} to{opacity:1; transform:translateY(0)} }
+
+        textarea, input[type="text"] {
+            width: 100%; background: #080808; border: 1px solid var(--border);
+            color: var(--term-green); padding: 20px; border-radius: 8px;
+            font-family: var(--font-mono); font-size: 0.95rem;
+            resize: none; margin-bottom: 20px;
+        }
+        textarea:focus, input:focus { border-color: var(--btc-orange); }
+
+        /* Cost Estimator */
+        .estimator-box {
+            background: #1a1a1a;
+            padding: 20px; border-radius: 8px;
+            border: 1px solid #333;
+            margin-top: 25px;
+        }
+        .est-main { font-size: 1.4rem; font-weight: 700; color: white; margin-bottom: 5px; }
+        .est-sub { font-size: 0.9rem; color: var(--text-muted); }
+
+        /* Toggle */
+        .switch-container { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px; background: #080808; border-radius: 8px; }
+        .switch-toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch-toggle input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; border-radius: 34px; transition: .4s; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; border-radius: 50%; transition: .4s; }
+        input:checked + .slider { background-color: var(--term-green); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div class="panel panel-side">
+        <div class="brand">
+            <div class="btc-logo">₿</div>
+            <span>iMadeDis<span style="color:var(--btc-orange)">.pro</span></span>
+        </div>
+
+        <button id="btnConnect" class="btn-wallet" onclick="connectWallet()">
+            🔌 Connect Wallet
+        </button>
+
+        <div style="margin-bottom: 30px;">
+            <div class="stat-row">
+                <span class="stat-label">Oracle Price</span>
+                <span class="stat-val" id="btcPrice">$---,---</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Network Fee</span>
+                <span class="stat-val" id="feeRate">-- sat/vB</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Block Height</span>
+                <span class="stat-val" id="blockHeight">---,---</span>
+            </div>
+        </div>
+
+        <div style="font-size:0.75rem; color:#555; line-height:1.6;">
+            STATUS: <span style="color:var(--term-green)">OPERATIONAL</span><br>
+            VERSION: v10.1 (STABLE)<br>
+            MODE: MAINNET / SIM
+        </div>
+    </div>
+
+    <div class="panel panel-main">
+        
+        <label style="display:block; font-size:0.75rem; color:var(--text-muted); margin-bottom:8px; letter-spacing:1px;">DIGITAL SIGNATURE</label>
+        <input type="text" id="creator" placeholder="Enter Alias (e.g. Satoshi)">
+
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="setTab('text', this)">Text</button>
+            <button class="tab-btn" onclick="setTab('image', this)">Image</button>
+            <button class="tab-btn" onclick="setTab('html', this)">Code</button>
+        </div>
+
+        <div id="inp-text" class="input-area active">
+            <textarea id="val-text" rows="6" placeholder="Write your permanent history..." oninput="updateCost()"></textarea>
+        </div>
+
+        <div id="inp-image" class="input-area">
+            <div style="border:2px dashed #333; padding:40px; text-align:center; cursor:pointer; background:#080808; border-radius:8px;" onclick="document.getElementById('val-file').click()">
+                <div style="font-size:2rem; margin-bottom:10px;">💾</div>
+                <div style="font-weight:700; color:white;">Click to Upload</div>
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-top:5px;">JPG, PNG, GIF</div>
+            </div>
+            <input type="file" id="val-file" hidden accept="image/*" onchange="handleFile(this)">
+            <div id="fileName" style="text-align:center; color:var(--btc-orange); font-size:0.9rem; margin-top:15px;"></div>
+        </div>
+
+        <div id="inp-html" class="input-area">
+            <textarea id="val-html" rows="8" placeholder="<!DOCTYPE html>..." oninput="updateCost()"></textarea>
+        </div>
+
+        <div class="estimator-box">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:5px;">TOTAL COST (GAS + DUST)</div>
+                    <div class="est-main" id="costSats">0 sats</div>
+                </div>
+                <div class="est-sub" id="costUsd">$0.00</div>
+            </div>
+            <div style="border-top:1px solid #333; margin-top:15px; padding-top:10px; font-size:0.75rem; color:var(--text-muted); display:flex; justify-content:space-between;">
+                <span id="dataSize">0 Bytes</span>
+                <span>Tier: Standard (Taproot)</span>
+            </div>
+        </div>
+
+        <div class="switch-container">
+            <div>
+                <div style="color:white; font-weight:700;">Simulation Mode</div>
+                <div style="font-size:0.8rem; color:var(--text-muted);">Test without spending real Bitcoin</div>
+            </div>
+            <label class="switch-toggle">
+                <input type="checkbox" id="testMode" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <button id="btnInscribe" class="btn-inscribe" disabled onclick="inscribe()">
+            INSCRIBE DATA
+        </button>
+
+    </div>
+</div>
+
+<script type="module">
+    // --- 1. CONFIG & STATE ---
+    const state = {
+        price: 95000, // Fallback Default
+        fee: 20,      // Fallback Default
+        mode: 'text',
+        wallet: null,
+        address: null
+    };
+
+    // --- 2. FAIL-SAFE DATA ENGINE ---
+    async function initData() {
+        // Price (CoinGecko) - Fails gracefully if rate limited
+        try {
+            const pRes = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+            if(pRes.ok) {
+                const pData = await pRes.json();
+                state.price = pData.bitcoin.usd;
+            }
+        } catch(e) { console.warn("Price API limit, using default."); }
+        document.getElementById('btcPrice').innerText = `$${state.price.toLocaleString()}`;
+
+        // Fees (Mempool.space) - Fails gracefully if CORS blocked
+        try {
+            const fRes = await fetch('https://mempool.space/api/v1/fees/recommended');
+            if(fRes.ok) {
+                const fData = await fRes.json();
+                state.fee = fData.halfHourFee;
+            }
+        } catch(e) { console.warn("Mempool API blocked, using default."); }
+        document.getElementById('feeRate').innerText = `${state.fee} sat/vB`;
+
+        // Block Height
+        try {
+            const hRes = await fetch('https://mempool.space/api/blocks/tip/height');
+            if(hRes.ok) {
+                const height = await hRes.text();
+                document.getElementById('blockHeight').innerText = parseInt(height).toLocaleString();
+            }
+        } catch(e) { document.getElementById('blockHeight').innerText = "842,000"; }
+    }
+    initData(); // Auto-start
+
+    // --- 3. UI LOGIC (Tabs & Files) ---
+    window.setTab = (mode, el) => {
+        state.mode = mode;
+        // Buttons
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        // Inputs
+        document.querySelectorAll('.input-area').forEach(a => a.style.display = 'none');
+        document.getElementById(`inp-${mode}`).style.display = 'block';
+        document.getElementById(`inp-${mode}`).classList.add('active');
+        
+        updateCost();
+    };
+
+    window.handleFile = (input) => {
+        if(input.files[0]) {
+            document.getElementById('fileName').innerText = `[ SELECTED: ${input.files[0].name.toUpperCase()} ]`;
+            updateCost();
+        }
+    };
+
+    // --- 4. COST CALCULATOR ---
+    window.updateCost = () => {
+        let size = 0;
+        if(state.mode === 'text') size = new Blob([document.getElementById('val-text').value]).size;
+        if(state.mode === 'html') size = new Blob([document.getElementById('val-html').value]).size;
+        if(state.mode === 'image' && document.getElementById('val-file').files[0]) {
+            size = document.getElementById('val-file').files[0].size;
+        }
+
+        // Formula: (Commit ~150) + (Reveal ~150 + Data/4)
+        const vBytes = 150 + (150 + (size/4));
+        const sats = Math.ceil(vBytes * state.fee);
+        const usd = (sats / 100000000) * state.price;
+
+        document.getElementById('dataSize').innerText = `${size.toLocaleString()} Bytes`;
+        document.getElementById('costSats').innerText = size > 0 ? `${sats.toLocaleString()} sats` : "0 sats";
+        document.getElementById('costUsd').innerText = size > 0 ? `$${usd.toFixed(2)}` : "$0.00";
+        
+        document.getElementById('btnInscribe').disabled = size === 0;
+    };
+
+    // --- 5. ROBUST WALLET CONNECT ---
+    window.connectWallet = async () => {
+        const btn = document.getElementById('btnConnect');
+        btn.innerHTML = "CONNECTING...";
+
+        // A. UniSat (Preferred)
+        if(window.unisat) {
+            try {
+                const accts = await window.unisat.requestAccounts();
+                handleConnected('UniSat', accts[0]);
+                return;
+            } catch(e) { console.log("User cancelled UniSat"); }
+        }
+        
+        // B. Fallback / Alert
+        alert("No Wallet Found!\n\nPlease install UniSat Wallet to proceed with real payments. You can still use 'Simulation Mode' without a wallet.");
+        btn.innerHTML = "🔌 CONNECT WALLET";
+    };
+
+    function handleConnected(provider, address) {
+        state.wallet = provider;
+        state.address = address;
+        const btn = document.getElementById('btnConnect');
+        btn.innerHTML = `<span style="color:var(--term-green)">●</span> ${address.slice(0,4)}...${address.slice(-4)}`;
+        btn.classList.add('connected');
+    }
+
+    // --- 6. INSCRIBE (Demo Guarantee) ---
+    window.inscribe = () => {
+        const isSim = document.getElementById('testMode').checked;
+        
+        // DEMO CHECK: Runs immediately regardless of wallet
+        if(isSim) {
+            const btn = document.getElementById('btnInscribe');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "SIGNING...";
+            btn.style.background = "#333";
+            
+            setTimeout(() => { btn.innerText = "BROADCASTING..."; }, 1000);
+            setTimeout(() => { btn.innerText = "CONFIRMING..."; }, 2500);
+            setTimeout(() => { 
+                btn.innerText = "SUCCESS!";
+                btn.style.background = "var(--term-green)";
+                alert(`SIMULATION COMPLETE!\n\nStatus: Inscribed (Fake)\nCreator: ${document.getElementById('creator').value || 'Anon'}\nID: #PENDING`);
+                
+                // Reset
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = "var(--btc-orange)";
+                    btn.disabled = false;
+                }, 2000);
+            }, 4000);
+            return;
+        }
+
+        // REAL CHECK
+        if(!state.wallet) {
+            alert("For Real Mainnet Inscriptions, you MUST connect a wallet first.\n\nPlease connect UniSat or enable 'Simulation Mode'.");
+            return;
+        }
+        
+        alert("Mainnet backend integration required for real payments.");
+    };
+
+</script>
+</body>
+</html>
